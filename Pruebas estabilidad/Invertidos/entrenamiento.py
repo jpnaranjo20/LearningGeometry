@@ -1,10 +1,9 @@
+##### SCRIPT QUE LLEVA A CABO EL PROCESO DE ENTRENAMIENTO
 from venv import create
 import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
-# import spidev
 import time
-# import RPi.GPIO as GPIO
 import itertools
 from ast import literal_eval
 from sklearn.metrics import confusion_matrix, accuracy_score
@@ -211,6 +210,7 @@ def get_ellipse_params(abcdef):
 
     return Q, u, f
 
+# Función para cargar las señales de entrenamiento
 def load_signals(path):
     datos = pd.read_excel(path)
     datos_dict = datos.to_dict()
@@ -221,6 +221,7 @@ def load_signals(path):
 
     return Va, Vb, Vc
 
+# Número de datos de entrenamiento por falla.
 n = 5
 enes = [x for x in range(5)]*8 # 40 archivos.
 
@@ -233,56 +234,66 @@ AGs = ['AG' for x in range(5)]
 BGs = ['BG' for x in range(5)]
 CGs = ['CG' for x in range(5)]
 
+# Lista de etiquetas.
 fallas_true = [NoFaults, ABs, BCs, CAs, ABCs, AGs, BGs, CGs]
 fallas_true = list(itertools.chain.from_iterable(fallas_true))
 
+# Vectores para guardar las transformadas de Clarke de cada dato de entrenamiento. Se inicializan como vectores de ceros, para posteriormente eliminar esta primera fila.
 refA = np.zeros((1,2))
 refB = np.zeros((1,2))
 refC = np.zeros((1,2))
 
-# Valores propios
+# Valores propios de cada referencia
 eigVals_refA = []
 eigVals_refB = []
 eigVals_refC = []
 
-# Vectores propios
+# Vectores propios de cada referencia
 eigVects_refA = []
 eigVects_refB = []
 eigVects_refC = []
 
-
+# El usuario ingresa la distancia de inserción y el tipo de falla para el cual va a realizar el entrenamiento.
+# Para distancias se reciben valores númericos entre 10, 20, 50, 75 y 95.
+# Para fallas se recibe uno de los siguientes strings: NoFault, AB, BC, CA, ABC, AG, BG o CG.
 distancia = input('Distancia: ')
 falla = input('Falla: ')
 for j in range(n):
-
+    # Se leen los datos de entrenamiento
     path = f'Pruebas estabilidad/Invertidos/datos_train/{falla}/voltajes_{falla}_{distancia}km_{j}.xlsx'
     Va_list, Vb_list, Vc_list = load_signals(path)
 
+    # Se calcula la transformada de Clarke en cada referencia y el resultado se agrega a su vector correspondiente
     a_Va_refA, b_Vb_refA, z_Vc_refA = Clarke_ref_A(Va_list, Vb_list, Vc_list)
     x_refA = create_x(a_Va_refA, b_Vb_refA)
-    refA = np.vstack([x_refA, refA])
+    refA = np.vstack([x_refA, refA]) # Función para guardar en el vector correspondiente.
 
     a_Va_refB, b_Vb_refB, z_Vc_refB = Clarke_ref_B(Vb_list, Vc_list, Va_list)
     x_refB = create_x(a_Va_refB, b_Vb_refB)
-    refB = np.vstack([x_refB, refB])
+    refB = np.vstack([x_refB, refB]) # Función para guardar en el vector correspondiente.
 
     a_Va_refC, b_Vb_refC, z_Vc_refC = Clarke_ref_C(Vc_list, Va_list, Vb_list)
     x_refC = create_x(a_Va_refC, b_Vb_refC)
-    refC = np.vstack([x_refC, refC])
+    refC = np.vstack([x_refC, refC]) # Función para guardar en el vector correspondiente.
 
+# Cuando se sale de este for, se tienen tres vectores llenos de todas las 5 observaciones de la transformada de Clarke (uno por cada referencia)
 
+# Se eliminan las primeras filas de las transformadas de Clarke de todas las referencias (se crearon por primera vez como un vector de ceros).
 refA = np.delete(refA, 0, 0)
 refB = np.delete(refB, 0, 0)
 refC = np.delete(refC, 0, 0)
 
+# Se lleva a cabo la regresión elíptica
 abcdef_refA = fit_ellipse(refA[:,0], refA[:,1])
 abcdef_refB = fit_ellipse(refB[:,0], refB[:,1])
 abcdef_refC = fit_ellipse(refC[:,0], refC[:,1])
 
+# Se construye la matriz Q de cada referencia
 Q_refA, _, _ = get_ellipse_params(abcdef_refA)
 Q_refB, _, _ = get_ellipse_params(abcdef_refB)
 Q_refC, _, _ = get_ellipse_params(abcdef_refC)
 
+# Se obtienen los valores y vectores propios de cada matriz Q y se agregan a las listas correspondientes.
 valsQA, vectsQA = np.linalg.eig(Q_refA)
 valsQB, vectsQB = np.linalg.eig(Q_refB)
 valsQC, vectsQC = np.linalg.eig(Q_refC)
@@ -299,5 +310,8 @@ eigvals = [eigVals_refA, eigVals_refB, eigVals_refC]
 df_vects = pd.DataFrame(eigvcs, index=['eigVect (RefA)', 'eigVect (RefB)', 'eigVect (RefC)'], columns=[falla])
 df_vals = pd.DataFrame(eigvals, index=['eigVals (RefA)', 'eigVals (RefB)', 'eigVals (RefC)'], columns=[falla])
 
+# Se guardan los valores y vectores propios característicos de cada tipo de falla en un archivo de excel aparte.
+# Después cada archivo de estos se leerá en otro script para construir una sola tabla de valores/vectores propios característicos para
+# cada distancia de inserción.
 df_vals.to_excel(f'Pruebas estabilidad/Invertidos/eigvals_eigvects_invertidos/eigvals_{distancia}km_{falla}.xlsx')
 df_vects.to_excel(f'Pruebas estabilidad/Invertidos/eigvals_eigvects_invertidos/eigvects_{distancia}km_{falla}.xlsx')

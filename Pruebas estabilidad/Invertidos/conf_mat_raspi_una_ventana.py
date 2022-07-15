@@ -1,3 +1,6 @@
+###### SCRIPT PARA CONSTRUIR LAS MATRICES DE CONFUSIÓN PARA LA PARTICIÓN DE DATOS INVERTIDA #############
+# Se corre en un computador, igual que para la partición de datos original.
+
 import numpy as np
 import pandas as pd
 import itertools

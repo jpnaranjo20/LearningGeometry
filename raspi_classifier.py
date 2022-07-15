@@ -1,9 +1,10 @@
+############# ESTE SCRIPT CORRE EN LA RASPBERRY PI 3 ###################
 import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
 import spidev
 import time
-import R  GPIO
+import RPi.GPIO as GPIO
 from ast import literal_eval
 
 t_start = time.time()
@@ -21,6 +22,7 @@ spi.max_speed_hz=4000000
 CS_ADC = 12
 GPIO.setup(CS_ADC, GPIO.OUT)
 
+# Digital inputs (reading state of contactors)
 S1 = 17
 S2 = 27
 S3 = 22
@@ -173,60 +175,40 @@ def get_ellipse_params(abcdef):
 
     return Q, u, f
 
+# Function to read one of the 8 available channels in the MCP3008
 def ReadChannel3008(channel):
     adc = spi.xfer2([1, (8+channel)<<4,0])
     data = ((adc[1]&3) << 8) + adc[2]
     return data
 
+# Function to convert analog readings from MCP3008 into a voltage value
 def ConvertToVoltage(value, bitdepth, vref):
     return vref*(value/(2**bitdepth-1))
 
 ########## IMPORTACIÓN DE VALORES Y VECTORES PROPIOS CARACTERÍSTICOS DE CADA FALLA ##########
 
-# Valores propios
-# eigvals_10km = pd.read_excel('Pruebas estabilidad/Original/eigvals_eigvects_original/eigvals_10km.xlsx')
-# eigvals_20km = pd.read_excel('Pruebas estabilidad/Original/eigvals_eigvects_original/eigvals_20km.xlsx')
-# eigvals_50km = pd.read_excel('Pruebas estabilidad/Original/eigvals_eigvects_original/eigvals_50km.xlsx')
-# eigvals_75km = pd.read_excel('Pruebas estabilidad/Original/eigvals_eigvects_original/eigvals_75km.xlsx')
-# eigvals_95km = pd.read_excel('Pruebas estabilidad/Original/eigvals_eigvects_original/eigvals_95km.xlsx')
-
-# eigvals_10km = pd.read_excel('Pruebas estabilidad/Original/eigvals_eigvects_original_new/eigvals_10km_originales_new.xlsx')
-# eigvals_20km = pd.read_excel('Pruebas estabilidad/Original/eigvals_eigvects_original_new/eigvals_20km_originales_new.xlsx')
-# eigvals_50km = pd.read_excel('Pruebas estabilidad/Original/eigvals_eigvects_original_new/eigvals_50km_originales_new.xlsx')
-# eigvals_75km = pd.read_excel('Pruebas estabilidad/Original/eigvals_eigvects_original_new/eigvals_75km_originales_new.xlsx')
-# eigvals_95km = pd.read_excel('Pruebas estabilidad/Original/eigvals_eigvects_original_new/eigvals_95km_originales_new.xlsx')
-
+# Valores propios característicos
 eigvals_10km = pd.read_excel('Pruebas estabilidad/Original/eigvals_eigvects_original_true/eigvals_10km_original_true.xlsx')
 eigvals_20km = pd.read_excel('Pruebas estabilidad/Original/eigvals_eigvects_original_true/eigvals_20km_original_true.xlsx')
 eigvals_50km = pd.read_excel('Pruebas estabilidad/Original/eigvals_eigvects_original_true/eigvals_50km_original_true.xlsx')
 eigvals_75km = pd.read_excel('Pruebas estabilidad/Original/eigvals_eigvects_original_true/eigvals_75km_original_true.xlsx')
 eigvals_95km = pd.read_excel('Pruebas estabilidad/Original/eigvals_eigvects_original_true/eigvals_95km_original_true.xlsx')
 
+# Convertir tabla de valores propios característicos a un diccionario.  
 dict_eigvals_10km = eigvals_10km.to_dict()
 dict_eigvals_20km = eigvals_20km.to_dict()
 dict_eigvals_50km = eigvals_50km.to_dict()
 dict_eigvals_75km = eigvals_75km.to_dict()
 dict_eigvals_95km = eigvals_95km.to_dict()
 
-# Vectores propios
-# eigvects_10km = pd.read_excel('Pruebas estabilidad/Original/eigvals_eigvects_original/eigvects_10km.xlsx')
-# eigvects_20km = pd.read_excel('Pruebas estabilidad/Original/eigvals_eigvects_original/eigvects_20km.xlsx')
-# eigvects_50km = pd.read_excel('Pruebas estabilidad/Original/eigvals_eigvects_original/eigvects_50km.xlsx')
-# eigvects_75km = pd.read_excel('Pruebas estabilidad/Original/eigvals_eigvects_original/eigvects_75km.xlsx')
-# eigvects_95km = pd.read_excel('Pruebas estabilidad/Original/eigvals_eigvects_original/eigvects_95km.xlsx')
-
-# eigvects_10km = pd.read_excel('Pruebas estabilidad/Original/eigvals_eigvects_original_new/eigvects_10km_originales_new.xlsx')
-# eigvects_20km = pd.read_excel('Pruebas estabilidad/Original/eigvals_eigvects_original_new/eigvects_20km_originales_new.xlsx')
-# eigvects_50km = pd.read_excel('Pruebas estabilidad/Original/eigvals_eigvects_original_new/eigvects_50km_originales_new.xlsx')
-# eigvects_75km = pd.read_excel('Pruebas estabilidad/Original/eigvals_eigvects_original_new/eigvects_75km_originales_new.xlsx')
-# eigvects_95km = pd.read_excel('Pruebas estabilidad/Original/eigvals_eigvects_original_new/eigvects_95km_originales_new.xlsx')
-
+# Vectores propios característicos
 eigvects_10km = pd.read_excel('Pruebas estabilidad/Original/eigvals_eigvects_original_true/eigvects_10km_original_true.xlsx')
 eigvects_20km = pd.read_excel('Pruebas estabilidad/Original/eigvals_eigvects_original_true/eigvects_20km_original_true.xlsx')
 eigvects_50km = pd.read_excel('Pruebas estabilidad/Original/eigvals_eigvects_original_true/eigvects_50km_original_true.xlsx')
 eigvects_75km = pd.read_excel('Pruebas estabilidad/Original/eigvals_eigvects_original_true/eigvects_75km_original_true.xlsx')
 eigvects_95km = pd.read_excel('Pruebas estabilidad/Original/eigvals_eigvects_original_true/eigvects_95km_original_true.xlsx')
 
+# Convertir tabla de vectores propios característicos a un diccionario.  
 dict_eigvects_10km = eigvects_10km.to_dict()
 dict_eigvects_20km = eigvects_20km.to_dict()
 dict_eigvects_50km = eigvects_50km.to_dict()
@@ -247,7 +229,7 @@ for falla in fallas:
         dict_eigvects_75km[falla][i] = literal_eval(dict_eigvects_75km[falla][i])
         dict_eigvects_95km[falla][i] = literal_eval(dict_eigvects_95km[falla][i])
 
-# Creamos listas para guardar vectores característicos de cada falla. Cada lista es de longitud 8 (1 por cada falla).
+# Creamos listas para guardar vectores propios característicos de cada falla. Cada lista es de longitud 8 (1 por cada falla).
 vcts_carac_refA_10km = []
 vcts_carac_refA_20km = []
 vcts_carac_refA_50km = []
@@ -266,6 +248,7 @@ vcts_carac_refC_50km = []
 vcts_carac_refC_75km = []
 vcts_carac_refC_95km = []
 
+# Llenamos todas las anteriores listas con sus respectivos vectores propios característicos
 for falla in fallas:
     # RefA, para todas las distancias
     v_carac_refA_10km = dict_eigvects_10km[falla][0]
@@ -308,6 +291,7 @@ vals_carac_refA = []
 vals_carac_refB = []
 vals_carac_refC = []
 
+# Llenamos las listas de valores propios característicos
 for distancia in distancias:
     for falla in fallas:
         if distancia == 10:
@@ -366,6 +350,7 @@ idxs95km = indices[32:40]
 # print('Probamos que está bien:')
 # print(eigvals_95km)
 
+# Función para retornar el valor que ocurre más frecuentemente dentro de una lista.
 def most_frequent(List):
     counter = 0
     num = List[0]
@@ -384,10 +369,12 @@ def most_frequent(List):
 def comparar_valores_refA(vals_refA):
     normas_L2_refA = []
     for par_valores in vals_carac_refA:
-        normas_L2_refA.append(np.linalg.norm(vals_refA - par_valores))
+        normas_L2_refA.append(np.linalg.norm(vals_refA - par_valores)**2)
     
+    # Retorna el índice dentro de una lista del valor mínimo dentro de esa lista.
     idx_falla_elegida = np.argmin(normas_L2_refA)
 
+    # Dependiendo del índice retornado, sabemos a qué distancia de inserción corresponde.
     if idx_falla_elegida >= 0 and idx_falla_elegida <= 7:
         dist_elegida = 10
         falla_elegida = fallas[idxs10km.index(idx_falla_elegida)]
@@ -409,7 +396,7 @@ def comparar_valores_refA(vals_refA):
 def comparar_valores_refB(vals_refB):
     normas_L2_refB = []
     for par_valores in vals_carac_refB:
-        normas_L2_refB.append(np.linalg.norm(vals_refB - par_valores))
+        normas_L2_refB.append(np.linalg.norm(vals_refB - par_valores)**2)
     
     idx_falla_elegida = np.argmin(normas_L2_refB)
 
@@ -434,7 +421,7 @@ def comparar_valores_refB(vals_refB):
 def comparar_valores_refC(vals_refC):
     normas_L2_refC = []
     for par_valores in vals_carac_refC:
-        normas_L2_refC.append(np.linalg.norm(vals_refC - par_valores))
+        normas_L2_refC.append(np.linalg.norm(vals_refC - par_valores)**2)
     
     idx_falla_elegida = np.argmin(normas_L2_refC)
 
@@ -456,8 +443,6 @@ def comparar_valores_refC(vals_refC):
 
     return falla_elegida, dist_elegida
 
-
-
 # Funciones para comparar vectores propios de todas las referencias
 def comparar_vectores_refA(vect_refA):
     cos_dists_10km_refA = []
@@ -468,18 +453,15 @@ def comparar_vectores_refA(vect_refA):
     
     idx_falla_elegida = 0
     
+    # Comparamos distancias del coseno entre el vector de entrada con todos los vectores propios característicos.
     for i in range(len(vcts_carac_refA_10km)):
         cos_dists_10km_refA.append(cos_dist(vect_refA, vcts_carac_refA_10km[i]))
         cos_dists_20km_refA.append(cos_dist(vect_refA, vcts_carac_refA_20km[i]))
         cos_dists_50km_refA.append(cos_dist(vect_refA, vcts_carac_refA_50km[i]))
         cos_dists_75km_refA.append(cos_dist(vect_refA, vcts_carac_refA_75km[i]))
         cos_dists_95km_refA.append(cos_dist(vect_refA, vcts_carac_refA_95km[i]))
-
-#     tol = 10**-2
-#     for dist in cos_dists_refA:
-#         if dist < tol == True:
-#             idx_falla_elegida = cos_dists_refA.index(dist)
     
+    # Se retorna el índice dentro de la lista del valor máximo.
     idx_falla_elegida_10km = np.argmax(cos_dists_10km_refA)
     idx_falla_elegida_20km = np.argmax(cos_dists_20km_refA)
     idx_falla_elegida_50km = np.argmax(cos_dists_50km_refA)
@@ -487,10 +469,11 @@ def comparar_vectores_refA(vect_refA):
     idx_falla_elegida_95km = np.argmax(cos_dists_95km_refA)
 
     indices = [idx_falla_elegida_10km, idx_falla_elegida_20km, idx_falla_elegida_50km, idx_falla_elegida_75km, idx_falla_elegida_95km]
-#     print(f'A: {indices}')
     
+    # Se elige el índice de la falla que ocurre más frecuentemente en la lista de índices creada previamente.
     idx_falla_elegida = most_frequent(indices)
     
+    # Se hace la elección final del tipo de falla dependiento del índice elegido.
     if idx_falla_elegida==idxNoFault:
         falla_elegida = 'NoFault'
     elif idx_falla_elegida==idxAB:
@@ -525,11 +508,6 @@ def comparar_vectores_refB(vect_refB):
         cos_dists_50km_refB.append(cos_dist(vect_refB, vcts_carac_refB_50km[i]))
         cos_dists_75km_refB.append(cos_dist(vect_refB, vcts_carac_refB_75km[i]))
         cos_dists_95km_refB.append(cos_dist(vect_refB, vcts_carac_refB_95km[i]))
-
-#     tol = 10**-2
-#     for dist in cos_dists_refB:
-#         if dist < tol == True:
-#             idx_falla_elegida = cos_dists_refB.index(dist)
     
     idx_falla_elegida_10km = np.argmax(cos_dists_10km_refB)
     idx_falla_elegida_20km = np.argmax(cos_dists_20km_refB)
@@ -538,7 +516,6 @@ def comparar_vectores_refB(vect_refB):
     idx_falla_elegida_95km = np.argmax(cos_dists_95km_refB)
 
     indices = [idx_falla_elegida_10km, idx_falla_elegida_20km, idx_falla_elegida_50km, idx_falla_elegida_75km, idx_falla_elegida_95km]
-#     print(f'B: {indices}')
     
     idx_falla_elegida = most_frequent(indices)
     
@@ -576,11 +553,6 @@ def comparar_vectores_refC(vect_refC):
         cos_dists_50km_refC.append(cos_dist(vect_refC, vcts_carac_refC_50km[i]))
         cos_dists_75km_refC.append(cos_dist(vect_refC, vcts_carac_refC_75km[i]))
         cos_dists_95km_refC.append(cos_dist(vect_refC, vcts_carac_refC_95km[i]))
-
-#     tol = 10**-2
-#     for dist in cos_dists_refC:
-#         if dist < tol == True:
-#             idx_falla_elegida = cos_dists_refC.index(dist)
     
     idx_falla_elegida_10km = np.argmax(cos_dists_10km_refC)
     idx_falla_elegida_20km = np.argmax(cos_dists_20km_refC)
@@ -589,7 +561,6 @@ def comparar_vectores_refC(vect_refC):
     idx_falla_elegida_95km = np.argmax(cos_dists_95km_refC)
 
     indices = [idx_falla_elegida_10km, idx_falla_elegida_20km, idx_falla_elegida_50km, idx_falla_elegida_75km, idx_falla_elegida_95km]
-#     print(f'C: {indices}')
     
     idx_falla_elegida = most_frequent(indices)
     
@@ -643,6 +614,7 @@ def procesamiento(Va, Vb, Vc):
 
     return valsA, vectsA, valsB, vectsB, valsC, vectsC
 
+# Función para realizar clasificación de valores propios. La entrada son las ventanas de señales de voltaje.
 def clasificar_eigvals(Va, Vb, Vc):
 
     # Procesamiento de las tres señales de voltaje.
@@ -665,13 +637,11 @@ def clasificar_eigvals(Va, Vb, Vc):
     else:
         return fallaA, distA
 
+# Función para realizar clasificación de vectores propios. La entrada son las ventanas de señales de voltaje.
 def clasificar_eigvects(Va, Vb, Vc):
 
     # Procesamiento de las tres señales de voltaje
     valsA, vectsA, valsB, vectsB, valsC, vectsC = procesamiento(Va, Vb, Vc)
-#     print(f'A: {vectsA[:,0]}')
-#     print(f'B: {vectsB[:,0]}')
-#     print(f'C: {vectsC[:,0]}')
 
     # Miramos los vectores propios de cada referencia y los comparamos con los vectores propios característicos de cada falla.
     falla_refA = comparar_vectores_refA(vectsA[:,0])
@@ -690,6 +660,7 @@ def clasificar_eigvects(Va, Vb, Vc):
     else:
         return falla_refC
 
+# Función que llama las anteriores dos funciones.
 def classify_faults(Va, Vb, Vc):
     """
     Entradas:
@@ -725,30 +696,39 @@ Va_list = []
 Vb_list = []
 Vc_list = []
 
+# Variables de tiempo para saber isntante en que se cierran los interruptores.
 t_switch=0
 t_close=0
+
+# Variable para saber si ya ocurrió la falla.
 ya=False
 
+# Loop infinito
 while True:
     
+    # Se determina el tiempo actual de la simulación
     t_actual = time.time() - t_start
     
     GPIO.output(CS_ADC, GPIO.LOW) # Pull pin 12 low. We are selecting which pin we want to talk to.
 
+    # Se leen las señales del HIL402.
     signal_a = ReadChannel3008(0)
     signal_b = ReadChannel3008(1)
     signal_c = ReadChannel3008(2)
 
     GPIO.output(CS_ADC, GPIO.HIGH) # Pull pin 12 high to make sure we don't inadvertently talk to it.
 
+    # Se convierten los valores obtenidos a valores de voltaje (resolución 10 bits, Vref=5V).
     Va = ConvertToVoltage(signal_a, 10, 5)
     Vb = ConvertToVoltage(signal_b, 10, 5)
     Vc = ConvertToVoltage(signal_c, 10, 5)
 
+    # Se va llennando el buffer respectivo de cada voltaje.
     Va_list.append(Va)
     Vb_list.append(Vb)
     Vc_list.append(Vc)
     
+    # Si se cierra alguno de los interruptores del esquemático en el HIL402, detectar el cierre y registrar el instante de tiempo en que ocurrió.
     if GPIO.input(S1) == 1 or GPIO.input(S2) == 1 or GPIO.input(S3) == 1 and ya==False:
         t_close = time.time()
         ya = True
@@ -760,22 +740,27 @@ while True:
         falla_elegida, dist_elegida = classify_faults(Va_list, Vb_list, Vc_list)
         t_clasif = time.time()
         
+        # Tiempo entre cierre de los interruptores y clasificación.
         delta_t = t_clasif - t_close
         
-            
+        # Si se eligió el tipo de falla diferente a NoFault (estado de operación normal), registrar el tipo y distancia detectada.
+        # Si se eligió el tipo de falla igual a NoFault, significa que se está en estado de operación normal.
         if falla_elegida != 'NoFault':
             print(f't = {np.round(t_actual, 2)}s       {falla_elegida} fault detected, {dist_elegida}km away    delay={np.round(delta_t, 4)}s')
         else:
             print(f't = {np.round(t_actual, 2)}s       Normal operation')
             ya  = False
 
+        # Se vacían los buffers para que entren las siguientes muestras.
         Va_list = []
         Vb_list = []
         Vc_list = []
-
+        
+        # Se reinicia el contador de muestras que entran a los buffers.
         c = 0
     
     # Wait before repeating loop
     time.sleep(delay)
+    # Se incrementa el contador de muestras que entran a los buffers.
     c+=1
 

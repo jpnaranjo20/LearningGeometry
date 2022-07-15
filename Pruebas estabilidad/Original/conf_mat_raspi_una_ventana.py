@@ -1,25 +1,11 @@
+############ SCRIPT PARA CONSTRUIR LAS MATRICES DE CONFUSIÓN (corre offline con los datos de entrenamiento y validación) #############
 import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
-# import spidev
 import time
-# import RPi.GPIO as GPIO
 import itertools
 from ast import literal_eval
 from sklearn.metrics import confusion_matrix, accuracy_score
-
-# Set the numbering system of the pins
-# GPIO.setmode(GPIO.BCM)
-
-# # Open SPI bus
-# spi = spidev.SpiDev()
-# spi.open(0, 0)
-# spi.max_speed_hz=4000000
-
-# # Define custom chip select
-# # This is done so we can use dozens of SPI devices on 1 bus.
-# CS_ADC = 12
-# GPIO.setup(CS_ADC, GPIO.OUT)
 
 # Lista de nombres de fallas
 fallas = ['NoFault', 'AB', 'BC', 'CA', 'ABC', 'AG', 'BG', 'CG']
@@ -165,6 +151,7 @@ def get_ellipse_params(abcdef):
 
     return Q, u, f
 
+# Función para cargar los archivos de datos de validación o entrenamiento (según se requiera).
 def load_signals(path):
     datos = pd.read_excel(path)
     datos_dict = datos.to_dict()
@@ -177,26 +164,28 @@ def load_signals(path):
 
 ########## IMPORTACIÓN DE VALORES Y VECTORES PROPIOS CARACTERÍSTICOS DE CADA FALLA ##########
 
-# Valores propios
+# Valores propios característicos
 eigvals_10km = pd.read_excel('Pruebas estabilidad/Original/eigvals_eigvects_original_true/eigvals_10km_original_true.xlsx')
 eigvals_20km = pd.read_excel('Pruebas estabilidad/Original/eigvals_eigvects_original_true/eigvals_20km_original_true.xlsx')
 eigvals_50km = pd.read_excel('Pruebas estabilidad/Original/eigvals_eigvects_original_true/eigvals_50km_original_true.xlsx')
 eigvals_75km = pd.read_excel('Pruebas estabilidad/Original/eigvals_eigvects_original_true/eigvals_75km_original_true.xlsx')
 eigvals_95km = pd.read_excel('Pruebas estabilidad/Original/eigvals_eigvects_original_true/eigvals_95km_original_true.xlsx')
 
+# Se convierten a diccionario
 dict_eigvals_10km = eigvals_10km.to_dict()
 dict_eigvals_20km = eigvals_20km.to_dict()
 dict_eigvals_50km = eigvals_50km.to_dict()
 dict_eigvals_75km = eigvals_75km.to_dict()
 dict_eigvals_95km = eigvals_95km.to_dict()
 
-# Vectores propios
+# Vectores propios característicos
 eigvects_10km = pd.read_excel('Pruebas estabilidad/Original/eigvals_eigvects_original_true/eigvects_10km_original_true.xlsx')
 eigvects_20km = pd.read_excel('Pruebas estabilidad/Original/eigvals_eigvects_original_true/eigvects_20km_original_true.xlsx')
 eigvects_50km = pd.read_excel('Pruebas estabilidad/Original/eigvals_eigvects_original_true/eigvects_50km_original_true.xlsx')
 eigvects_75km = pd.read_excel('Pruebas estabilidad/Original/eigvals_eigvects_original_true/eigvects_75km_original_true.xlsx')
 eigvects_95km = pd.read_excel('Pruebas estabilidad/Original/eigvals_eigvects_original_true/eigvects_95km_original_true.xlsx')
 
+# Se convierten a diccionario
 dict_eigvects_10km = eigvects_10km.to_dict()
 dict_eigvects_20km = eigvects_20km.to_dict()
 dict_eigvects_50km = eigvects_50km.to_dict()
@@ -329,15 +318,6 @@ idxs50km = indices[16:24]
 idxs75km = indices[24:32]
 idxs95km = indices[32:40]
 
-# Ejemplo: retorne los valores propios de cada referencia de la falla ABC a 95km.
-# ind = idxs95km[idxABC]
-# print(vals_carac_refA[ind])
-# print(vals_carac_refB[ind])
-# print(vals_carac_refC[ind])
-
-# print('Probamos que está bien:')
-# print(eigvals_95km)
-
 ########### CLASIFICADOR #############
 
 # Funciones para comparar valores propios de todas las referencias
@@ -416,7 +396,6 @@ def comparar_valores_refC(vals_refC):
 
     return falla_elegida, dist_elegida
 
-# Funciones para comparar vectores propios de todas las referencias
 # Funciones para comparar vectores propios de todas las referencias
 def comparar_vectores_refA(vect_refA):
     cos_dists_10km_refA = []
@@ -567,6 +546,7 @@ def comparar_vectores_refC(vect_refC):
         falla_elegida = 'CG'
 
     return falla_elegida
+
 # Función que hace el proceso de obtener las transformadas de Clarke en todas las referencias, hacer la regresión elíptica y sacar valores y
 # vectores propios
 def procesamiento(Va, Vb, Vc):
@@ -598,6 +578,7 @@ def procesamiento(Va, Vb, Vc):
 
     return valsA, vectsA, valsB, vectsB, valsC, vectsC
 
+# Función para clasificar valores propios, llamando a las funciones correspondientes.
 def clasificar_eigvals(Va, Vb, Vc):
 
     # Procesamiento de las tres señales de voltaje.
@@ -620,6 +601,7 @@ def clasificar_eigvals(Va, Vb, Vc):
     else:
         return fallaA, distA
 
+# Función para clasificar vectores propios, llamando a las funciones correspondientes.
 def clasificar_eigvects(Va, Vb, Vc):
 
     # Procesamiento de las tres señales de voltaje
@@ -660,6 +642,7 @@ def classify_faults(Va, Vb, Vc):
 
     return falla_elegida, dist_elegida
 
+# Función para retornar el valor que ocurre más frecuentemente dentro de una lista.
 def most_frequent(List):
     counter = 0
     num = List[0]
@@ -675,6 +658,7 @@ def most_frequent(List):
 # Tamaño de la ventana
 m = 2000
 
+# Listas de etiquetas verdaderas
 NoFaults = ['NoFault' for x in range(5)]
 ABs = ['AB' for x in range(5)]
 BCs = ['BC' for x in range(5)]
@@ -684,15 +668,19 @@ AGs = ['AG' for x in range(5)]
 BGs = ['BG' for x in range(5)]
 CGs = ['CG' for x in range(5)]
 
+# Se crea una sola lsita a partir de las anteriores 8 listas.
 fallas_true = [NoFaults, ABs, BCs, CAs, ABCs, AGs, BGs, CGs]
 fallas_true = list(itertools.chain.from_iterable(fallas_true))
 
+# Listas para guardar predicciones de distancias y tipos de falla.
 fallas_pred = []
 dists_pred = []
 
 enes = [x for x in range(5)]*8 # 40 archivos.
 
+# El usuario indica para qué distancia de inserción se va a construir la matriz de confusión (10, 20, 50, 75 o 95).
 distancia = input("Distancia?")
+# Se crea lista de etiquetas correctas de esa distancia.
 dists_true = [int(distancia) for x in range(len(fallas_true))]
 
 # Cuando se acabe este for, ya habremos leido los 5*8 = 40 archivos de TODAS las fallas y UNA distancia.
@@ -702,9 +690,11 @@ for j in range(len(enes)):
 
     falla = fallas_true[j]
 
+    # Se cargan los datos de validación
     path = f'Pruebas estabilidad/Original/datos_valid/{falla}/voltajes_{falla}_{distancia}km_{i}.xlsx'
     Va_list, Vb_list, Vc_list = load_signals(path)
-
+    
+    # Listas para guardar predicciones.
     fallas_elegidas_por_ventana = []
     dists_elegidas_por_ventana = []
     
@@ -730,9 +720,11 @@ for j in range(len(enes)):
     fallas_pred.append(falla_elegida_final)
     dists_pred.append(dist_elegida_final)
 
+# Se construye la matriz de confusión con las listas de predicciones hechas y las listas de etiquetas reales.
 conf_mat_fallas = confusion_matrix(fallas_true, fallas_pred, labels=fallas)
 fila_conf_mat_dists = confusion_matrix(dists_true, dists_pred, labels=distancias)
 
+# Se calcula la precisión de clasificación tanto para tipo de falla como para distancia de inserción.
 accuracy_fallas = accuracy_score(fallas_true, fallas_pred)
 correctas_fallas = accuracy_score(fallas_true, fallas_pred, normalize=False)
 df_accuracy_fallas = pd.DataFrame([accuracy_fallas, correctas_fallas], index=['Percent', 'Correct'], columns=['Accuracy'])
@@ -740,6 +732,7 @@ df_accuracy_fallas = pd.DataFrame([accuracy_fallas, correctas_fallas], index=['P
 df_conf_mat_fallas = pd.DataFrame(conf_mat_fallas, index=fallas, columns=fallas)
 fila_df_conf_mat_dists = pd.DataFrame(fila_conf_mat_dists, index=distancias, columns=distancias)
 
+# Se guardan las matrices de confusión en un archivo de excel, y se guarda la precisión de cada matriz de confusión en un archivo de excel por separado.
 df_conf_mat_fallas.to_excel(f'Pruebas estabilidad/Original/una_ventana/matrices_conf_fallas/m{m}/mat_conf_fallas_{distancia}km.xlsx')
 df_accuracy_fallas.to_excel(f'Pruebas estabilidad/Original/una_ventana/matrices_conf_fallas/m{m}/accuracy_{distancia}km_m{m}.xlsx')
 fila_df_conf_mat_dists.to_excel(f'Pruebas estabilidad/Original/una_ventana/matrices_conf_dists/m{m}/fila{distancia}km.xlsx')
